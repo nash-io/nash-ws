@@ -1,0 +1,36 @@
+[package]
+name = "nash-ws"
+version = "0.1.0"
+authors = ["Danilo Guanabara <danguafer@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+derivative = "2.1.3"
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+tokio = { version = "0.3.5", features = ["full"] }
+tokio-tungstenite = { version = "0.12.0", features = ["tls"] }
+futures-util = "0.3.8"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = "0.2.69"
+wasm-bindgen-futures = "0.4.19"
+js-sys = "0.3.46"
+async-channel = "1.5.1"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies.web-sys]
+version = "0.3.46"
+features = [
+    "BinaryType",
+    "Blob",
+    "ErrorEvent",
+    "FileReader",
+    "MessageEvent",
+    "ProgressEvent",
+    "WebSocket",
+]
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3.19"
