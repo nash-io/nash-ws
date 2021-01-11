@@ -11,7 +11,8 @@ use wasm_bindgen_futures::{JsFuture, spawn_local};
 #[derive(Debug)]
 pub struct WebSocket {
     websocket: web_sys::WebSocket,
-    receiver: async_channel::Receiver<WebsocketResult<Message>>
+    receiver: async_channel::Receiver<WebsocketResult<Message>>,
+    _on_message_callback: Closure<dyn FnMut(MessageEvent)>
 }
 
 impl WebSocket {
@@ -43,7 +44,7 @@ impl WebSocket {
             let websocket: web_sys::WebSocket = websocket.dyn_into().expect("Couldn't cast JsValue to WebSocket.");
 
             // Message streaming.
-            let onmessage_callback = Closure::wrap(Box::new(move |e: MessageEvent| {
+            let _on_message_callback = Closure::wrap(Box::new(move |e: MessageEvent| {
                 if let Ok(text) = e.data().dyn_into::<js_sys::JsString>() {
                     let sender = sender.clone();
                     spawn_local(async move {
@@ -51,11 +52,8 @@ impl WebSocket {
                     })
                 }
             }) as Box<dyn FnMut(MessageEvent)>);
-            websocket.set_onmessage(Some(onmessage_callback.as_ref().unchecked_ref()));
-            // FIXME: Make it part of WebSocket structure.
-            onmessage_callback.forget();
-
-            WebSocket { websocket, receiver }
+            websocket.set_onmessage(Some(_on_message_callback.as_ref().unchecked_ref()));
+            WebSocket { websocket, receiver, _on_message_callback }
         }).map_err(|error| crate::error::Error::ConnectionFailure(error))
     }
 
