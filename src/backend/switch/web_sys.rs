@@ -1,3 +1,5 @@
+//! web-sys WebSocket backend.
+
 use crate::error::WebsocketResult;
 
 pub type Message = JsString;
@@ -8,6 +10,7 @@ use wasm_bindgen::closure::Closure;
 use js_sys::{Function, JsString};
 use wasm_bindgen_futures::{JsFuture, spawn_local};
 
+/// Stream based WebSocket.
 #[derive(Debug)]
 pub struct WebSocket {
     websocket: web_sys::WebSocket,
@@ -16,6 +19,8 @@ pub struct WebSocket {
 }
 
 impl WebSocket {
+    /// Creates a new WebSocket and connects it to the specified `url`.
+    /// Returns `ConnectionError` if it can't connect.
     pub async fn new(url: &str) -> WebsocketResult<Self> {
         let (sender, receiver) = async_channel::unbounded();
 
@@ -54,14 +59,16 @@ impl WebSocket {
             }) as Box<dyn FnMut(MessageEvent)>);
             websocket.set_onmessage(Some(_on_message_callback.as_ref().unchecked_ref()));
             WebSocket { websocket, receiver, _on_message_callback }
-        }).map_err(|error| crate::error::Error::ConnectionFailure(error))
+        }).map_err(|error| crate::error::Error::ConnectionError(error))
     }
 
+    /// Attempts to send a message and returns `SendError` if it fails.
     pub async fn send(&mut self, message: &str) -> WebsocketResult<()> {
         self.websocket.send_with_str(message)
             .map_err(|error| crate::error::Error::SendError(error))
     }
 
+    /// Attempts to receive a message and returns `ReceiveError` if it fails.
     pub async fn next(&mut self) -> Option<WebsocketResult<Message>> {
         self.receiver.recv().await.ok()
     }
