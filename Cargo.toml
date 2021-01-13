@@ -28,9 +28,12 @@ features = [
     "ErrorEvent",
     "FileReader",
     "MessageEvent",
+    "CloseEvent",
     "ProgressEvent",
     "WebSocket",
 ]
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.19"
+cross-test = "0.1.1"
+libflate = "1.0.3"

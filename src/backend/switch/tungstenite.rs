@@ -7,8 +7,22 @@ pub use tokio_tungstenite::tungstenite::Error;
 use tokio::net::TcpStream;
 use futures_util::SinkExt;
 
-use tokio_tungstenite::tungstenite::Message;
+use crate::message::Message;
 use futures_util::StreamExt;
+
+impl From<tokio_tungstenite::tungstenite::Message> for Message {
+    fn from(message: tokio_tungstenite::tungstenite::Message) -> Self {
+        match message {
+            tokio_tungstenite::tungstenite::Message::Binary(binary) => {
+                Message::Binary(binary)
+            },
+            tokio_tungstenite::tungstenite::Message::Text(text) => {
+                Message::Text(text)
+            },
+            _ => unimplemented!("Some message types aren't implemented yet.")
+        }
+    }
+}
 
 /// Stream based WebSocket.
 #[derive(Derivative)]
@@ -29,12 +43,27 @@ impl WebSocket {
     }
 
     /// Attempts to send a message and returns `SendError` if it fails.
-    pub async fn send(&mut self, message: &str) -> WebsocketResult<()> {
-        self.socket.send(message.into()).await.map_err(|error| crate::error::Error::SendError(error))
+    pub async fn send(&mut self, message: &Message) -> WebsocketResult<()> {
+        match message {
+            Message::Text(text) => {
+                self.socket.send(text.clone().into()).await.map_err(|error| crate::error::Error::SendError(error))
+            },
+            Message::Binary(binary) => {
+                self.socket.send(binary.clone().into()).await.map_err(|error| crate::error::Error::SendError(error))
+            }
+        }
     }
 
     /// Attempts to receive a message and returns `ReceiveError` if it fails.
     pub async fn next(&mut self) -> Option<WebsocketResult<Message>> {
-        self.socket.next().await.map(|result| result.map_err(|error| crate::error::Error::ReceiveError(error)))
+        self.socket.next().await.map(|result| {
+            result
+                .map(|result| {
+                    result.into()
+                })
+                .map_err(|error| {
+                    crate::error::Error::ReceiveError(error)
+                })
+        })
     }
 }

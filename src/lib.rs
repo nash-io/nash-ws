@@ -4,6 +4,9 @@
 
 mod prelude;
 mod backend;
-pub mod error;
+mod message;
+mod error;
 
-pub use backend::WebSocket;
+pub use error::*;
+pub use backend::*;
+pub use message::*;

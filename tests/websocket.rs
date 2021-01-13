@@ -1,40 +1,34 @@
-mod cross {
-    #[cfg(not(target_arch = "wasm32"))]
-    mod platform {
-        pub use tokio::test as test;
-    }
-
-    #[cfg(target_arch = "wasm32")]
-    mod platform {
-        pub use wasm_bindgen_test::wasm_bindgen_test_configure as web_configure;
-        pub use wasm_bindgen_test::wasm_bindgen_test as test;
-        web_configure!(run_in_browser);
-    }
-
-    pub use platform::*;
-}
+cross_test::configure!();
 
 #[cfg(test)]
 mod tests {
-    use nash_ws::WebSocket;
-    use crate::cross;
+    use nash_ws::{WebSocket, Message};
 
-    #[cross::test]
+    #[cross_test::test]
     async fn connection_failure() {
         WebSocket::new("wss://nonexistent.domain").await.expect_err("Couldn't connect");
     }
 
-    #[cross::test]
+    #[cross_test::test]
     async fn echo() {
         let mut websocket = WebSocket::new("wss://echo.websocket.org").await.expect("Couldn't connect");
 
-        let expected_message_1 = "Hello";
-        websocket.send(expected_message_1.into()).await.expect("Couldn't send message.");
-        let expected_message_2 = "Echo";
-        websocket.send(expected_message_2.into()).await.expect("Couldn't send message.");
-        let message = websocket.next().await.expect("Stream has terminated at message 1.").expect("Failed to receive message.");
-        assert_eq!(message.to_string(), expected_message_1, "Unexpected message 1.");
-        let message = websocket.next().await.expect("Stream has terminated at message 2.").expect("Failed to receive message.");
-        assert_eq!(message.to_string(), expected_message_2, "Unexpected message 2.");
+        let expected_message_1 = Message::Text("Hello".into());
+        websocket.send(&expected_message_1).await.expect("Couldn't send text message 1.");
+
+        let expected_message_2 = Message::Binary(vec![1, 2, 3]);
+        websocket.send(&expected_message_2).await.expect("Couldn't send text message 2.");
+
+        let expected_message_3 = Message::Text("Echo".into());
+        websocket.send(&expected_message_3).await.expect("Couldn't send binary message 3.");
+
+        let message = websocket.next().await.expect("Stream has terminated at message 1.").expect("Failed to receive message 1.");
+        assert_eq!(message, expected_message_1, "Unexpected message 1.");
+
+        let message = websocket.next().await.expect("Stream has terminated at message 2.").expect("Failed to receive message 2.");
+        assert_eq!(message, expected_message_2, "Unexpected message 2.");
+
+        let message = websocket.next().await.expect("Stream has terminated at message 3.").expect("Failed to receive message 3.");
+        assert_eq!(message, expected_message_3, "Unexpected message 3.");
     }
 }
