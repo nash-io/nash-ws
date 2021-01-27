@@ -1,15 +1,16 @@
-cross_test::configure!();
-
 #[cfg(test)]
 mod tests {
     use nash_ws::{WebSocket, Message};
+    use cross_test::prelude::*;
 
-    #[cross_test::test]
+    cross_test_configure!();
+
+    #[cross_test]
     async fn connection_failure() {
         WebSocket::new("wss://nonexistent.domain").await.expect_err("Couldn't connect");
     }
 
-    #[cross_test::test]
+    #[cross_test]
     async fn echo() {
         let mut websocket = WebSocket::new("wss://echo.websocket.org").await.expect("Couldn't connect");
 
