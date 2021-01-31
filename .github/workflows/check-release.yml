@@ -4,7 +4,7 @@ on:
       - main
 jobs:
   check-release:
-  runs-on: ubuntu-latest
+    runs-on: ubuntu-latest
     name: Check Release
     steps:
       - uses: actions/checkout@v2
