@@ -1,0 +1,28 @@
+on:
+  pull_request:
+    branches:
+      - main
+jobs:
+  native:
+    runs-on: ubuntu-latest
+    name: Native
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - uses: notdanilo/cross-test-action@main
+        with:
+          platform: native
+          args: -- -- --test-threads=1
+  web:
+    runs-on: ubuntu-latest
+    name: Web
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+      - uses: notdanilo/cross-test-action@main
+        with:
+          platform: web
