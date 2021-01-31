@@ -3,6 +3,11 @@ name = "nash-ws"
 version = "0.1.0"
 authors = ["Danilo Guanabara <danguafer@gmail.com>"]
 edition = "2018"
+license       = "Apache-2.0"
+description   = "nash-ws is a web and native stream based WebSocket client"
+readme        = "README.md"
+documentation = "https://docs.rs/nash-ws"
+repository    = "https://github.com/nash-io/nash-ws"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
