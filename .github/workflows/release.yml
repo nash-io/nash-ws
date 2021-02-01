@@ -18,3 +18,5 @@ jobs:
           minor-label: minor
           patch-label: patch
           cargo-token: ${{ secrets.CARGO_TOKEN }}
+          github-user-name: notdanilo
+          github-token: ${{ secrets.BOT_GITHUB_TOKEN }}
