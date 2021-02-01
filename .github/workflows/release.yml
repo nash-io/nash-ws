@@ -9,6 +9,8 @@ jobs:
     name: Release
     steps:
       - uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.BOT_GITHUB_TOKEN }}
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
@@ -18,5 +20,3 @@ jobs:
           minor-label: minor
           patch-label: patch
           cargo-token: ${{ secrets.CARGO_TOKEN }}
-          github-user-name: notdanilo
-          github-token: ${{ secrets.BOT_GITHUB_TOKEN }}
