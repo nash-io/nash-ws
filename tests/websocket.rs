@@ -11,6 +11,16 @@ mod tests {
     }
 
     #[cross_test]
+    async fn send_after_close() {
+        let mut websocket = WebSocket::new("wss://echo.websocket.org").await.expect("Couldn't connect");
+
+        websocket.close(None).await.expect("Failed to close WebSocket.");
+
+        let expected_message_1 = Message::Text("Hello".into());
+        websocket.send(&expected_message_1).await.expect_err("Sending after closing is not allowed.");
+    }
+
+    #[cross_test]
     async fn echo() {
         let mut websocket = WebSocket::new("wss://echo.websocket.org").await.expect("Couldn't connect");
 
