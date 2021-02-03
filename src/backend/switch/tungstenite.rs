@@ -9,6 +9,8 @@ use futures_util::SinkExt;
 
 use crate::message::Message;
 use futures_util::StreamExt;
+use tokio_tungstenite::tungstenite::protocol::CloseFrame;
+use tokio_tungstenite::tungstenite::protocol::frame::coding::CloseCode;
 
 impl From<tokio_tungstenite::tungstenite::Message> for Message {
     fn from(message: tokio_tungstenite::tungstenite::Message) -> Self {
@@ -19,7 +21,11 @@ impl From<tokio_tungstenite::tungstenite::Message> for Message {
             tokio_tungstenite::tungstenite::Message::Text(text) => {
                 Message::Text(text)
             },
-            _ => unimplemented!("Some message types aren't implemented yet.")
+            tokio_tungstenite::tungstenite::Message::Close(close) => {
+                let close = close.map(|close| close.reason.to_string());
+                Message::Close(close)
+            },
+            _ => unimplemented!("Some message types aren't implemented yet: {:#?}", message)
         }
     }
 }
@@ -50,8 +56,19 @@ impl WebSocket {
             },
             Message::Binary(binary) => {
                 self.socket.send(binary.clone().into()).await.map_err(|error| crate::error::Error::SendError(error))
+            },
+            Message::Close(close) => {
+                self.socket.close(close.clone().map(|reason| CloseFrame {
+                    code: CloseCode::Normal,
+                    reason: reason.into()
+                })).await.map_err(|error| crate::error::Error::SendError(error))
             }
         }
+    }
+
+    /// Attempts to close the connection and returns `SendError` if it fails.
+    pub async fn close(&mut self, message: Option<String>) -> WebsocketResult<()> {
+        self.send(&Message::Close(message)).await
     }
 
     /// Attempts to receive a message and returns `ReceiveError` if it fails.

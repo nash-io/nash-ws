@@ -83,17 +83,34 @@ impl WebSocket {
         }).map_err(|error| crate::error::Error::ConnectionError(error))
     }
 
+    /// Attempts to close the connection and returns `SendError` if it fails.
+    pub async fn close(&mut self, close: Option<String>) -> WebsocketResult<()> {
+        self.send(&Message::Close(close)).await
+    }
+
     /// Attempts to send a message and returns `SendError` if it fails.
     pub async fn send(&mut self, message: &Message) -> WebsocketResult<()> {
-        match message {
-            Message::Text(text) => {
-                self.websocket.send_with_str(&text)
-                    .map_err(|error| crate::error::Error::SendError(error))
-            },
-            Message::Binary(binary) => {
-                self.websocket.send_with_u8_array(&binary)
-                    .map_err(|error| crate::error::Error::SendError(error))
+        if self.websocket.ready_state() == web_sys::WebSocket::OPEN {
+            match message {
+                Message::Text(text) => {
+                    self.websocket.send_with_str(&text)
+                        .map_err(|error| crate::error::Error::SendError(error))
+                },
+                Message::Binary(binary) => {
+                    self.websocket.send_with_u8_array(&binary)
+                        .map_err(|error| crate::error::Error::SendError(error))
+                },
+                Message::Close(reason) => {
+                    const NORMAL: u16 = 1000;
+                    if let Some(reason) = reason {
+                        self.websocket.close_with_code_and_reason(NORMAL, &reason)
+                    } else {
+                        self.websocket.close_with_code(NORMAL)
+                    }.map_err(|error| crate::error::Error::SendError(error))
+                }
             }
+        } else {
+            Err(crate::error::Error::SendError("Sending while the socket is not open is not allowed.".into()))
         }
     }
 
