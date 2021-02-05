@@ -21,10 +21,20 @@ impl From<MessageEvent> for Message {
     }
 }
 
-/// Stream based WebSocket.
+/// Stream-based WebSocket.
 #[derive(Debug)]
-pub struct WebSocket {
+pub struct WebSocket {}
+
+
+/// WebSocket sender. Also responsible for closing the connection.
+#[derive(Debug, Clone)]
+pub struct WebSocketSender {
     websocket: web_sys::WebSocket,
+}
+
+/// WebSocket receiver.
+#[derive(Debug)]
+pub struct WebSocketReceiver {
     receiver: async_channel::Receiver<WebsocketResult<Message>>,
     _on_message_callback: Closure<dyn FnMut(MessageEvent)>,
     _on_close_callback: Closure<dyn FnMut(CloseEvent)>
@@ -33,7 +43,7 @@ pub struct WebSocket {
 impl WebSocket {
     /// Creates a new WebSocket and connects it to the specified `url`.
     /// Returns `ConnectionError` if it can't connect.
-    pub async fn new(url: &str) -> WebsocketResult<Self> {
+    pub async fn new(url: &str) -> WebsocketResult<(WebSocketSender, WebSocketReceiver)> {
         let (sender, receiver) = async_channel::unbounded();
 
         let mut connection_callback = Box::new(|accept: Function, reject: Function| {
@@ -79,13 +89,18 @@ impl WebSocket {
             websocket.set_onclose(Some(_on_close_callback.as_ref().unchecked_ref()));
 
             websocket.set_binary_type(web_sys::BinaryType::Arraybuffer);
-            WebSocket { websocket, receiver, _on_message_callback, _on_close_callback }
+            (
+                WebSocketSender { websocket },
+                WebSocketReceiver { receiver, _on_message_callback, _on_close_callback }
+            )
         }).map_err(|error| crate::error::Error::ConnectionError(error))
     }
+}
 
+impl WebSocketSender {
     /// Attempts to close the connection and returns `SendError` if it fails.
-    pub async fn close(&mut self, close: Option<String>) -> WebsocketResult<()> {
-        self.send(&Message::Close(close)).await
+    pub async fn close(&mut self, message: Option<String>) -> WebsocketResult<()> {
+        self.send(&Message::Close(message)).await
     }
 
     /// Attempts to send a message and returns `SendError` if it fails.
@@ -113,7 +128,9 @@ impl WebSocket {
             Err(crate::error::Error::SendError("Sending while the socket is not open is not allowed.".into()))
         }
     }
+}
 
+impl WebSocketReceiver {
     /// Attempts to receive a message and returns `ReceiveError` if it fails.
     pub async fn next(&mut self) -> Option<WebsocketResult<Message>> {
         self.receiver.recv().await.ok()
